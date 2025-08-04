@@ -1,19 +1,25 @@
 import { useRef } from "react";
+import * as XLSX from "xlsx";
 
 type Props = {
-  onFileSelect: (file: File) => void;
+  onDataParsed: (data: string[][]) => void;
 };
 
-export default function FileUpload({ onFileSelect }: Props) {
+export default function FileUpload({ onDataParsed }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.name.match(/\.(xlsx|xls)$/)) {
-      onFileSelect(file);
-    } else {
-      alert("Please upload a valid Excel file (.xlsx or .xls)");
-    }
+    if (!file) return;
+
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: "array" });
+
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+
+    onDataParsed(sheetData);
   };
 
   return (
